@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  Modal, StyleSheet, Alert, FlatList,
+  Modal, StyleSheet, Alert, FlatList, Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
@@ -75,6 +75,12 @@ export default function WorkoutsScreen() {
     });
     setUserData(prev => ({ ...prev, oneRM: { ...(prev.oneRM || {}), ...newOneRM } }));
     goTo(SCREEN.DETAIL);
+  }
+
+  // ── YouTube form tutorial ───────────────────────────────
+  function openYouTube(exerciseName) {
+    const query = encodeURIComponent(exerciseName + ' proper form tutorial');
+    Linking.openURL(`https://www.youtube.com/results?search_query=${query}`);
   }
 
   // ── Plate calculator ────────────────────────────────────
@@ -356,6 +362,12 @@ export default function WorkoutsScreen() {
                       <Text style={{ flex: 1, fontSize: 12, color: ex.target_weight ? '#fbbf24' : theme.textMuted }}>
                         {ex.name}{ex.target_weight ? `  ·  ${ex.target_weight} lbs` : ''}
                       </Text>
+                      <TouchableOpacity
+                        onPress={() => openYouTube(ex.name)}
+                        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                      >
+                        <Ionicons name="play-circle-outline" size={15} color={theme.textSec} />
+                      </TouchableOpacity>
                       {ex.target_weight ? (
                         <TouchableOpacity
                           onPress={() => openPlateCalc(ex.target_weight)}
@@ -415,6 +427,12 @@ export default function WorkoutsScreen() {
                 <View style={{ flex: 1 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <Text style={{ color: theme.textPri, fontWeight: '700', fontSize: 15, flex: 1 }}>{ex.name}</Text>
+                    <TouchableOpacity
+                      onPress={() => openYouTube(ex.name)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Ionicons name="play-circle-outline" size={18} color={theme.textSec} />
+                    </TouchableOpacity>
                     {ex.weight_key !== null && (
                       <TouchableOpacity
                         onPress={() => openPlateCalc(setWeights[`${exIdx}-1`] || ex.target_weight || '')}
