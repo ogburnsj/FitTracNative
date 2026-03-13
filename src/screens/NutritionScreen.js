@@ -262,7 +262,12 @@ export default function NutritionScreen({ navigation }) {
           {/* Food selected → servings input */}
           {selFood && (
             <View style={[s.card, { marginHorizontal:16, marginBottom:8 }]}>
-              <Text style={[s.bodyPri, { marginBottom:4 }]}>{selFood.n}</Text>
+              <View style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'flex-start' }}>
+                <Text style={[s.bodyPri, { marginBottom:4, flex:1, marginRight:8 }]}>{selFood.n}</Text>
+                <TouchableOpacity onPress={() => { setSelFood(null); setServings('1'); }}>
+                  <Ionicons name="close" size={20} color={theme.textSec} />
+                </TouchableOpacity>
+              </View>
               <Text style={s.bodySec}>{selFood.srv} • {selFood.cal} cal</Text>
               <View style={{ flexDirection:'row', alignItems:'center', marginTop:10, gap:12 }}>
                 <Text style={s.bodySec}>Servings:</Text>
