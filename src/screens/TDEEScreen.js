@@ -8,6 +8,7 @@ import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const ACTIVITY_LEVELS = [
   { key:'sedentary',  label:'Sedentary',       desc:'Little or no exercise',           mult:1.2   },
@@ -130,6 +131,7 @@ export default function TDEEScreen({ navigation }) {
   }
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bgPage }}>
     <KeyboardAvoidingView style={{ flex:1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
     <ScrollView style={s.page} contentContainerStyle={{ paddingBottom:60 }} keyboardShouldPersistTaps="handled">
@@ -279,6 +281,7 @@ export default function TDEEScreen({ navigation }) {
     </ScrollView>
     </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -304,7 +307,7 @@ function MacroBar({ label, value, color, theme }) {
 function makeStyles(theme) {
   return StyleSheet.create({
     page:        { flex:1, backgroundColor: theme.bgPage },
-    header:      { flexDirection:'row', justifyContent:'space-between', alignItems:'center', padding:16, paddingTop:20 },
+    header:      { flexDirection:'row', justifyContent:'space-between', alignItems:'center', padding:16, paddingTop:8 },
     backBtn:     { width:40 },
     headerTitle: { fontSize:20, fontWeight:'900', color: theme.textPri },
     card:        { backgroundColor: theme.bgCard, borderRadius: theme.cardRadius, borderWidth:1, borderColor: theme.border, padding:16, marginHorizontal:16, marginBottom:12, ...(theme.shadow || {}) },

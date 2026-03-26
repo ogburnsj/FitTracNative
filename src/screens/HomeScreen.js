@@ -1,20 +1,17 @@
-import React, { useCallback } from 'react';
+import React from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { PROGRAMS } from '../data/programs';
+import ProgressRow from '../components/ProgressRow';
 
 export default function HomeScreen({ navigation }) {
   const { userData, setUserData, getTodayFoodLog, calcStreak, calc7DayCalAvg, calcWeightDelta } = useApp();
   const { theme } = useTheme();
   const s = makeStyles(theme);
-
-  // Re-render when tab is focused so stats stay fresh
-  useFocusEffect(useCallback(() => {}, []));
 
   const target  = userData.targetCalories || 2000;
   const eaten   = userData.calories || 0;
@@ -121,14 +118,6 @@ export default function HomeScreen({ navigation }) {
   );
 }
 
-function ProgressRow({ label, value, color, theme }) {
-  return (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: theme.border }}>
-      <Text style={{ color: theme.textSec, fontSize: 14 }}>{label}</Text>
-      <Text style={{ color, fontWeight: '700', fontSize: 14 }}>{value}</Text>
-    </View>
-  );
-}
 
 function handleAction(id, navigation) {
   switch (id) {

@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function LogWeightScreen({ navigation }) {
   const { userData, logWeight } = useApp();
@@ -38,7 +39,8 @@ export default function LogWeightScreen({ navigation }) {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex:1, backgroundColor: theme.bgPage }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bgPage }}>
+    <KeyboardAvoidingView style={{ flex:1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={s.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
           <Ionicons name="chevron-back" size={24} color={theme.textPri} />
@@ -78,12 +80,13 @@ export default function LogWeightScreen({ navigation }) {
         )}
       </ScrollView>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 function makeStyles(theme) {
   return StyleSheet.create({
-    header:      { flexDirection:'row', justifyContent:'space-between', alignItems:'center', padding:16, paddingTop:20, borderBottomWidth:1, borderBottomColor: theme.border, backgroundColor: theme.bgCard },
+    header:      { flexDirection:'row', justifyContent:'space-between', alignItems:'center', padding:16, paddingTop:8, borderBottomWidth:1, borderBottomColor: theme.border, backgroundColor: theme.bgCard },
     backBtn:     { width:40 },
     headerTitle: { fontSize:20, fontWeight:'900', color: theme.textPri },
     card:        { backgroundColor: theme.bgCard, borderRadius: theme.cardRadius, borderWidth:1, borderColor: theme.border, padding:16, marginBottom:12, ...(theme.shadow || {}) },

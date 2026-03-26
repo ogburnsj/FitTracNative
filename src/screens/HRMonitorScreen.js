@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useApp } from '../context/AppContext';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // 5 HR zones based on max HR percentage
 const ZONE_DEFS = [
@@ -110,6 +111,7 @@ export default function HRMonitorScreen({ navigation }) {
   const goalZone = zoneTimes[2] || 0; // Zone 2 fat burn is the main goal
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bgPage }}>
     <ScrollView style={s.page} contentContainerStyle={{ paddingBottom:60 }} showsVerticalScrollIndicator={false}>
       <View style={s.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
@@ -242,13 +244,14 @@ export default function HRMonitorScreen({ navigation }) {
         </View>
       </View>
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
 function makeStyles(theme) {
   return StyleSheet.create({
     page:       { flex:1, backgroundColor: theme.bgPage },
-    header:     { flexDirection:'row', justifyContent:'space-between', alignItems:'center', padding:16, paddingTop:20 },
+    header:     { flexDirection:'row', justifyContent:'space-between', alignItems:'center', padding:16, paddingTop:8 },
     backBtn:    { width:40 },
     headerTitle:{ fontSize:20, fontWeight:'900', color: theme.textPri },
     card:       { backgroundColor: theme.bgCard, borderRadius: theme.cardRadius, borderWidth:1, borderColor: theme.border, padding:16, marginHorizontal:16, marginBottom:12, ...(theme.shadow || {}) },

@@ -1,6 +1,54 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// ── Type definitions ──────────────────────────────────────────────────────────
+
+/**
+ * A single food log entry.
+ * @typedef {{ n: string, cal: number, pro: number, carb: number, fat: number, fib: number, sod: number, srv: string, servings: number, _usda?: boolean }} FoodEntry
+ */
+
+/**
+ * A single weight log entry.
+ * @typedef {{ date: string, weight: number }} WeightEntry
+ */
+
+/**
+ * A completed workout record.
+ * @typedef {{ date: string, program: string, day: string, duration: number, completed: boolean }} WorkoutEntry
+ */
+
+/**
+ * User's physical profile used for TDEE calculations.
+ * @typedef {{ age: number|null, heightFt: number|null, heightIn: number|null, weight: number|null, sex: string, activityLevel: string, goal: string, tdee: number|null, goalAdjustment: number, goalSliderIdx: number }} UserProfile
+ */
+
+/**
+ * All meals for a single calendar day.
+ * @typedef {{ Breakfast: FoodEntry[], Lunch: FoodEntry[], Dinner: FoodEntry[], Snacks: FoodEntry[] }} DayFoodLog
+ */
+
+/**
+ * The full persisted user state.
+ * @typedef {{
+ *   calories: number,
+ *   targetCalories: number,
+ *   workoutsCompleted: number,
+ *   weight: number,
+ *   weightHistory: WeightEntry[],
+ *   workoutHistory: WorkoutEntry[],
+ *   currentProgram: string|null,
+ *   lastWorkout: string|null,
+ *   chatHistory: any[],
+ *   isPremium: boolean,
+ *   foodLog: Record<string, DayFoodLog>,
+ *   oneRM: Record<string, number>,
+ *   weights: Record<string, number>,
+ *   apiKey: string,
+ *   profile: UserProfile
+ * }} UserData
+ */
+
 const STORAGE_KEY = 'fittrac_user_data';
 const CUSTOM_KEY  = 'fittrac_custom_workouts';
 
@@ -65,16 +113,22 @@ export function AppProvider({ children }) {
   }
 
   // ── Food helpers ─────────────────────────────────────
+  /** @returns {string} today's date as YYYY-MM-DD */
   function getTodayKey() {
     return new Date().toISOString().slice(0, 10);
   }
 
+  /** @returns {DayFoodLog} */
   function getTodayFoodLog() {
     const today = getTodayKey();
     const log = userData.foodLog?.[today];
     return log || { Breakfast: [], Lunch: [], Dinner: [], Snacks: [] };
   }
 
+  /**
+   * @param {string} meal - 'Breakfast' | 'Lunch' | 'Dinner' | 'Snacks'
+   * @param {FoodEntry} entry
+   */
   function addFoodEntry(meal, entry) {
     setUserData(prev => {
       const today = getTodayKey();
@@ -90,6 +144,10 @@ export function AppProvider({ children }) {
     });
   }
 
+  /**
+   * @param {string} meal - 'Breakfast' | 'Lunch' | 'Dinner' | 'Snacks'
+   * @param {number} idx - index within the meal array
+   */
   function removeFoodEntry(meal, idx) {
     setUserData(prev => {
       const today = getTodayKey();
@@ -113,6 +171,7 @@ export function AppProvider({ children }) {
   }
 
   // ── Weight helpers ────────────────────────────────────
+  /** @param {number} weight - weight in lbs */
   function logWeight(weight) {
     setUserData(prev => ({
       ...prev,
@@ -122,6 +181,11 @@ export function AppProvider({ children }) {
   }
 
   // ── Workout helpers ───────────────────────────────────
+  /**
+   * @param {string} programId
+   * @param {string} dayName
+   * @param {number} durationMins
+   */
   function finishWorkout(programId, dayName, durationMins) {
     setUserData(prev => {
       const history = [...(prev.workoutHistory || []), {
@@ -154,6 +218,7 @@ export function AppProvider({ children }) {
   }
 
   // ── Stats calculators ─────────────────────────────────
+  /** @returns {number} consecutive workout days ending today or yesterday */
   function calcStreak() {
     const history = userData.workoutHistory || [];
     if (!history.length) return 0;
@@ -172,6 +237,7 @@ export function AppProvider({ children }) {
     return streak;
   }
 
+  /** @returns {number|null} average daily calories over the last 7 logged days, or null if no data */
   function calc7DayCalAvg() {
     const log = userData.foodLog || {};
     const days = [];
@@ -185,6 +251,7 @@ export function AppProvider({ children }) {
     return Math.round(days.reduce((a, b) => a + b, 0) / days.length);
   }
 
+  /** @returns {number|null} weight change (lbs) from first to latest entry, or null if fewer than 2 entries */
   function calcWeightDelta() {
     const wh = userData.weightHistory || [];
     if (wh.length < 2) return null;
@@ -205,6 +272,26 @@ export function AppProvider({ children }) {
   );
 }
 
+/**
+ * @returns {{
+ *   userData: UserData,
+ *   setUserData: (updater: UserData | ((prev: UserData) => UserData)) => void,
+ *   saveNow: (data: UserData) => Promise<void>,
+ *   loaded: boolean,
+ *   getTodayKey: () => string,
+ *   getTodayFoodLog: () => DayFoodLog,
+ *   addFoodEntry: (meal: string, entry: FoodEntry) => void,
+ *   removeFoodEntry: (meal: string, idx: number) => void,
+ *   clearTodayFood: () => void,
+ *   logWeight: (weight: number) => void,
+ *   finishWorkout: (programId: string, dayName: string, durationMins: number) => void,
+ *   loadCustomWorkouts: () => Promise<any[]>,
+ *   saveCustomWorkouts: (workouts: any[]) => Promise<void>,
+ *   calcStreak: () => number,
+ *   calc7DayCalAvg: () => number|null,
+ *   calcWeightDelta: () => number|null,
+ * }}
+ */
 export function useApp() {
   return useContext(AppContext);
 }

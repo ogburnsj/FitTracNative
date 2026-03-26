@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, Dimensions,
+  StyleSheet, KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 
@@ -56,7 +57,9 @@ export default function PlateCalcScreen({ navigation }) {
   const isExact    = Math.abs(achievable - total) < 0.01;
 
   return (
-    <ScrollView style={s.page} contentContainerStyle={{ paddingBottom:60 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bgPage }}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <ScrollView style={s.page} contentContainerStyle={{ paddingBottom:60 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
       <View style={s.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
           <Ionicons name="chevron-back" size={24} color={theme.textPri} />
@@ -162,13 +165,15 @@ export default function PlateCalcScreen({ navigation }) {
         </View>
       )}
     </ScrollView>
+    </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 function makeStyles(theme) {
   return StyleSheet.create({
     page:       { flex:1, backgroundColor: theme.bgPage },
-    header:     { flexDirection:'row', justifyContent:'space-between', alignItems:'center', padding:16, paddingTop:20 },
+    header:     { flexDirection:'row', justifyContent:'space-between', alignItems:'center', padding:16, paddingTop:8 },
     backBtn:    { width:40 },
     headerTitle:{ fontSize:20, fontWeight:'900', color: theme.textPri },
     card:       { backgroundColor: theme.bgCard, borderRadius: theme.cardRadius, borderWidth:1, borderColor: theme.border, padding:16, margin:16, marginBottom:0, ...(theme.shadow || {}) },

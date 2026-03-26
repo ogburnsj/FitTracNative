@@ -6,7 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
-import { PROGRAMS, TB_IDS, STANDALONE_IDS, KB_IDS, LIFT_LABELS, DEFAULT_1RM } from '../data/programs';
+import { PROGRAMS, TB_IDS, STANDALONE_IDS, KB_IDS, MIL_IDS, LIFT_LABELS, DEFAULT_1RM } from '../data/programs';
 import { EXERCISE_LIBRARY } from '../data/exercises';
 
 // ── Screens inside the modal ──────────────────────────────
@@ -253,7 +253,8 @@ export default function WorkoutsScreen() {
 
   // ── Render helpers ──────────────────────────────────────
   function renderProgramList() {
-    const tbPrograms = TB_IDS.map(id => PROGRAMS.find(p => p.id === id)).filter(Boolean);
+    const tbPrograms  = TB_IDS.map(id => PROGRAMS.find(p => p.id === id)).filter(Boolean);
+    const milPrograms = MIL_IDS.map(id => PROGRAMS.find(p => p.id === id)).filter(Boolean);
     const standalone  = STANDALONE_IDS.map(id => PROGRAMS.find(p => p.id === id)).filter(Boolean);
     const kb          = KB_IDS.map(id => PROGRAMS.find(p => p.id === id)).filter(Boolean);
 
@@ -267,7 +268,7 @@ export default function WorkoutsScreen() {
               <Ionicons name="shield" size={18} color="#4ade80" />
             </View>
             <View style={{ marginLeft: 10 }}>
-              <Text style={[s.bold, { color: theme.textPri }]}>Tactical Barbell</Text>
+              <Text style={[s.bold, { color: theme.textPri }]}>Barbell Periodization</Text>
               <Text style={{ color: theme.textSec, fontSize: 12 }}>6 protocols · 2–4 days/week</Text>
             </View>
           </View>
@@ -280,6 +281,36 @@ export default function WorkoutsScreen() {
               </TouchableOpacity>
             ))}
           </View>
+        </View>
+
+        {/* Military Fitness group */}
+        <View style={s.card}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+            <View style={[s.progIcon, { backgroundColor: '#1c1917' }]}>
+              <Ionicons name="shield-checkmark" size={18} color="#a8a29e" />
+            </View>
+            <View style={{ marginLeft: 10 }}>
+              <Text style={[s.bold, { color: theme.textPri }]}>Military Fitness</Text>
+              <Text style={{ color: theme.textSec, fontSize: 12 }}>6 programs · USMC · Army · Navy · Selection</Text>
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {milPrograms.map(p => (
+              <TouchableOpacity key={p.id} onPress={() => openProgramDetail(p.id)}
+                style={[s.tbChip, { backgroundColor: p.color[0] }]}>
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12 }}>{p.name}</Text>
+                <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11 }}>{p.freq}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <TouchableOpacity
+            style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: theme.border }}
+            onPress={() => navigation.navigate('MilScore')}
+          >
+            <Ionicons name="calculator-outline" size={16} color={theme.accent} style={{ marginRight: 8 }} />
+            <Text style={{ fontSize: 13, fontWeight: '700', color: theme.accent }}>Score Calculator</Text>
+            <Ionicons name="chevron-forward" size={14} color={theme.accent} style={{ marginLeft: 4 }} />
+          </TouchableOpacity>
         </View>
 
         <Text style={s.sectionLabel}>Other Programs</Text>

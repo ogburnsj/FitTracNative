@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SettingsScreen({ navigation }) {
   const { userData, setUserData } = useApp();
@@ -21,6 +22,7 @@ export default function SettingsScreen({ navigation }) {
   }
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bgPage }}>
     <ScrollView style={s.page} contentContainerStyle={{ paddingBottom:60 }} showsVerticalScrollIndicator={false}>
       <View style={s.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
@@ -135,13 +137,14 @@ export default function SettingsScreen({ navigation }) {
 
       <Text style={[s.bodySec, { textAlign:'center', marginTop:8, fontSize:11 }]}>FitTrac v1.0</Text>
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
 function makeStyles(theme) {
   return StyleSheet.create({
     page:        { flex:1, backgroundColor: theme.bgPage },
-    header:      { flexDirection:'row', justifyContent:'space-between', alignItems:'center', padding:16, paddingTop:20 },
+    header:      { flexDirection:'row', justifyContent:'space-between', alignItems:'center', padding:16, paddingTop:8 },
     backBtn:     { width:40 },
     headerTitle: { fontSize:20, fontWeight:'900', color: theme.textPri },
     section:     { paddingHorizontal:16, marginBottom:16 },

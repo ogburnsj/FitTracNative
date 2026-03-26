@@ -19,6 +19,7 @@ import HRMonitorScreen  from './src/screens/HRMonitorScreen';
 import BarcodeScreen    from './src/screens/BarcodeScreen';
 import SettingsScreen   from './src/screens/SettingsScreen';
 import TDEEScreen       from './src/screens/TDEEScreen';
+import MilScoreScreen  from './src/screens/MilScoreScreen';
 
 const Tab   = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -73,6 +74,7 @@ function RootStack() {
       <Stack.Screen name="Barcode"    component={BarcodeScreen}   options={{ presentation: 'fullScreenModal' }} />
       <Stack.Screen name="Settings"   component={SettingsScreen}  />
       <Stack.Screen name="TDEE"       component={TDEEScreen}      />
+      <Stack.Screen name="MilScore"   component={MilScoreScreen}  />
     </Stack.Navigator>
   );
 }

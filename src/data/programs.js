@@ -81,12 +81,12 @@ function buildTBSchedule(waveKey, lifts, twoWorkouts = false, oneRMs = {}) {
 export const PROGRAMS = [
   {
     id: 'operator',
-    name: 'Operator',
+    name: 'Foundation',
     goal: 'Strength',
     days: 3,
     freq: '3x/week',
     color: ['#1d4ed8', '#1e3a8a'],
-    desc: 'The foundational TB protocol. 3 days/week, linear progression over 6 weeks with 2 strength clusters. You pick a main lift cluster (Squat, Bench, Deadlift, OHP). Retest 1RMs every 6–12 weeks.',
+    desc: 'The foundational wave periodization protocol. 3 days/week, linear progression over 6 weeks with 2 strength clusters. You pick a main lift cluster (Squat, Bench, Deadlift, OHP). Retest 1RMs every 6–12 weeks.',
     getSchedule: (oneRMs = {}) => buildTBSchedule('operator', [
       {name:'Squat', key:'squat'},
       {name:'Bench Press', key:'bench'},
@@ -96,12 +96,12 @@ export const PROGRAMS = [
   },
   {
     id: 'zulu',
-    name: 'Zulu',
+    name: 'Split Strength',
     goal: 'Strength (A/B Split)',
     days: 4,
     freq: '4x/week',
     color: ['#d97706', '#92400e'],
-    desc: '4 days/week, alternating Workout A and B. More volume than Operator. Workout A: Squat, Bench, Row. Workout B: Deadlift, OHP, Pull-ups. Your spreadsheet shows your current progression.',
+    desc: '4 days/week, alternating Workout A and B. More volume than Foundation. Workout A: Squat, Bench, Row. Workout B: Deadlift, OHP, Pull-ups. Track your progression each session.',
     getSchedule: (oneRMs = {}) => buildTBSchedule('zulu', [
       {name:'Squat', key:'squat'},
       {name:'Bench Press', key:'bench'},
@@ -113,7 +113,7 @@ export const PROGRAMS = [
   },
   {
     id: 'fighter',
-    name: 'Fighter',
+    name: 'Minimalist',
     goal: 'Strength + Performance',
     days: 2,
     freq: '2x/week',
@@ -128,7 +128,7 @@ export const PROGRAMS = [
   },
   {
     id: 'gladiator',
-    name: 'Gladiator',
+    name: 'Iron Volume',
     goal: 'Max Strength',
     days: 3,
     freq: '3x/week',
@@ -158,12 +158,12 @@ export const PROGRAMS = [
   },
   {
     id: 'greyman',
-    name: 'Grey Man',
+    name: 'Long Cycle',
     goal: 'Long-cycle Strength',
     days: 3,
     freq: '3x/week',
     color: ['#4b5563', '#1f2937'],
-    desc: '12-week long-cycle protocol. Two 6-week blocks with progressively heavier loading. Most complete TB strength template.',
+    desc: '12-week long-cycle protocol. Two 6-week blocks with progressively heavier loading. The most comprehensive percentage-based barbell program in the app.',
     getSchedule: (oneRMs = {}) => buildTBSchedule('greyman', [
       {name:'Squat', key:'squat'},
       {name:'Bench Press', key:'bench'},
@@ -202,12 +202,12 @@ export const PROGRAMS = [
   },
   {
     id: 'stronglifts',
-    name: 'StrongLifts 5x5',
+    name: '5x5 Linear Progression',
     goal: 'Strength',
     days: 3,
     freq: '3x/week',
     color: ['#2563eb', '#1e40af'],
-    desc: 'The classic beginner barbell program. 3 days/week, alternating Workout A and B. Squat every session, add 5 lbs each time.',
+    desc: 'Classic beginner barbell program. 3 days/week, alternating Workout A and B. Squat every session, add 5 lbs each time.',
     getSchedule: (_, weights = {}) => [
       { day: 'Workout A — Squat / Bench / Row', exercises: [
         {name:'Squat',        sets:5, reps:5, weight_key:'sl_squat',    target_weight: weights.sl_squat    || 45},
@@ -223,12 +223,12 @@ export const PROGRAMS = [
   },
   {
     id: 'starting_strength',
-    name: 'Starting Strength',
+    name: 'Barbell Foundations 3x5',
     goal: 'Strength',
     days: 3,
     freq: '3x/week',
     color: ['#ea580c', '#9a3412'],
-    desc: "Mark Rippetoe's foundational barbell program. 3 days/week, two alternating workouts. Focus on the big 4 lifts with linear progression every session.",
+    desc: 'A foundational barbell program for beginners. 3 days/week, two alternating workouts. Focus on the big 4 lifts with linear progression every session.',
     getSchedule: (_, weights = {}) => [
       { day: 'Workout A — Squat / Bench / Deadlift', exercises: [
         {name:'Squat',       sets:3, reps:5, weight_key:'ss_squat',    target_weight: weights.ss_squat    || 45},
@@ -244,12 +244,12 @@ export const PROGRAMS = [
   },
   {
     id: 'simple_sinister',
-    name: 'Simple & Sinister',
+    name: 'Swing & Get-Up Daily',
     goal: 'Strength & Conditioning',
     days: 6,
     freq: 'Daily practice',
     color: ['#64748b', '#1e293b'],
-    desc: "Pavel Tsatsouline's foundational kettlebell program. 100 one-arm swings + 10 Turkish get-ups daily. Goal: 'Simple' standard is 32kg swings in 5 min, 24kg get-ups in 10 min (men).",
+    desc: 'Classic daily kettlebell practice. 100 one-arm swings + 10 Turkish get-ups every day. Goal: complete all swings under 5 min, all get-ups under 10 min.',
     getSchedule: (_, weights = {}) => [
       { day: 'Daily Practice', exercises: [
         {name:'KB One-Arm Swing',  sets:10, reps:10, note:'Alternate hands each set. 10 sets of 10 = 100 total. Goal: all 100 in under 5 min', weight_key:'kb_swing', target_weight: weights.kb_swing || 35},
@@ -263,12 +263,12 @@ export const PROGRAMS = [
   },
   {
     id: 'enter_kettlebell',
-    name: 'Enter the Kettlebell',
+    name: 'KB Press Builder',
     goal: 'Strength',
     days: 5,
     freq: '5x/week',
     color: ['#b91c1c', '#7f1d1d'],
-    desc: "Pavel Tsatsouline's ROP (Rite of Passage). Clean & Press ladders build serious pressing strength. Goal: press half your bodyweight.",
+    desc: 'Pressing-focused kettlebell program. Clean & Press ladders build serious overhead strength. Goal: press half your bodyweight.',
     getSchedule: (_, weights = {}) => [
       { day: 'Press Day A — Clean & Press + Swing', exercises: [
         {name:'KB Clean & Press (Ladder 1-2-3)', sets:3, reps:6, note:'1 rep, rest, 2 reps, rest, 3 reps = 1 ladder. Do 3 ladders per side.', weight_key:'kb_press', target_weight: weights.kb_press || 26},
@@ -298,7 +298,7 @@ export const PROGRAMS = [
     days: 4,
     freq: '4x/week',
     color: ['#059669', '#064e3b'],
-    desc: 'Double kettlebell hypertrophy program based on Pavel and Dan John protocols. Clean & Press, Front Squat, Row, and Swing for full-body muscle gain. Needs two matched bells.',
+    desc: 'Double kettlebell hypertrophy program. Clean & Press, Front Squat, Row, and Swing for full-body muscle gain. Needs two matched bells.',
     getSchedule: (_, weights = {}) => [
       { day: 'Push — Double KB Press & Squat', exercises: [
         {name:'Double KB Clean & Press', sets:5, reps:5, note:'Clean to rack each rep. Full lockout overhead.', weight_key:'kb_dbl_press', target_weight: weights.kb_dbl_press || 26},
@@ -323,6 +323,10 @@ export const PROGRAMS = [
   },
 ];
 
+import { MIL_PROGRAMS, MIL_IDS } from './militaryPrograms';
+PROGRAMS.push(...MIL_PROGRAMS);
+
+export { MIL_IDS };
 export const TB_IDS = ['operator', 'zulu', 'fighter', 'gladiator', 'mass', 'greyman'];
 export const STANDALONE_IDS = ['stronglifts', 'starting_strength', 'cardio'];
 export const KB_IDS = ['simple_sinister', 'enter_kettlebell', 'kb_muscle'];
