@@ -43,7 +43,9 @@ export default function HomeScreen({ navigation }) {
       <View style={[s.card, s.hero]}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <View>
-            <Text style={[s.h2, { marginBottom: 4 }]}>Welcome back!</Text>
+            <Text style={[s.h2, { marginBottom: 4 }]}>
+              {userData.profile?.name ? `Hey, ${userData.profile.name}!` : 'Welcome back!'}
+            </Text>
             <Text style={[s.bodySec, { marginBottom: 12 }]}>Ready to crush your fitness goals today?</Text>
           </View>
           <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={{ padding: 4 }}>

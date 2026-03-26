@@ -1,12 +1,14 @@
 import React from 'react';
+import { View, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
-import { AppProvider } from './src/context/AppContext';
+import { AppProvider, useApp } from './src/context/AppContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
+import OnboardingScreen from './src/screens/OnboardingScreen';
 
 import HomeScreen       from './src/screens/HomeScreen';
 import WorkoutsScreen   from './src/screens/WorkoutsScreen';
@@ -81,6 +83,25 @@ function RootStack() {
 
 function AppInner() {
   const { theme } = useTheme();
+  const { userData, loaded } = useApp();
+
+  if (!loaded) {
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.bgPage, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color={theme.accent} size="large" />
+      </View>
+    );
+  }
+
+  if (!userData.onboardingComplete) {
+    return (
+      <>
+        <StatusBar style={theme.name === 'minimal' ? 'dark' : 'light'} />
+        <OnboardingScreen />
+      </>
+    );
+  }
+
   return (
     <NavigationContainer>
       <StatusBar style={theme.name === 'minimal' ? 'dark' : 'light'} />
