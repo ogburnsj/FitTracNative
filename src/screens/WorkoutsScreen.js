@@ -8,6 +8,7 @@ import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { PROGRAMS, TB_IDS, STANDALONE_IDS, KB_IDS, MIL_IDS, LIFT_LABELS, DEFAULT_1RM } from '../data/programs';
 import { EXERCISE_LIBRARY } from '../data/exercises';
+import ProgramCard from '../components/ProgramCard';
 
 // ── Screens inside the modal ──────────────────────────────
 const SCREEN = { LIST: 'list', DETAIL: 'detail', SETUP: 'setup', ACTIVE: 'active', ONE_RM: 'oneRM', BUILDER: 'builder', PICKER: 'picker', PLATE_CALC: 'plateCalc' };
@@ -1011,25 +1012,6 @@ export default function WorkoutsScreen({ navigation }) {
   );
 }
 
-function ProgramCard({ program: p, onPress, theme, s }) {
-  return (
-    <View style={[s.card, { marginBottom: 10 }]}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-        <View style={[s.progIcon, { backgroundColor: p.color[0] }]}>
-          <Text style={{ color: '#fff', fontWeight: '900', fontSize: 11 }}>GO</Text>
-        </View>
-        <View style={{ marginLeft: 10 }}>
-          <Text style={[s.bold, { color: theme.textPri }]}>{p.name}</Text>
-          <Text style={{ color: theme.textSec, fontSize: 12 }}>{p.goal} · {p.freq}</Text>
-        </View>
-      </View>
-      <Text style={{ color: theme.textSec, fontSize: 12, marginBottom: 10, lineHeight: 18 }} numberOfLines={2}>{p.desc}</Text>
-      <TouchableOpacity style={[s.btnAccent, { backgroundColor: p.color[0] }]} onPress={onPress}>
-        <Text style={{ color: '#fff', fontWeight: '700' }}>View Program</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
 
 function makeStyles(theme) {
   const s = StyleSheet.create({

@@ -24,6 +24,7 @@ export default function ProgressScreen() {
   const s = makeStyles(theme);
 
   const [weightRange, setWeightRange] = useState(1); // index into WEIGHT_RANGES
+  const [liftName,    setLiftName]    = useState('Squat');
 
   const [, forceUpdate] = useState(0);
   useFocusEffect(useCallback(() => { forceUpdate(n => n + 1); }, []));
@@ -74,6 +75,29 @@ export default function ProgressScreen() {
     labels: barLabels,
     datasets: [{ data: barData }],
   };
+
+  // ── Lift progression chart ──────────────────────────────────────
+  const TRACKED_LIFTS = ['Squat', 'Bench Press', 'Deadlift', 'Overhead Press', 'Barbell Row'];
+  const liftHistory = (userData.workoutHistory || [])
+    .filter(w => w.exercises && w.exercises.length > 0)
+    .flatMap(w => w.exercises
+      .filter(ex => ex.name === liftName && ex.weight)
+      .map(ex => ({ date: w.date, weight: ex.weight }))
+    )
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  let liftChartData = null;
+  if (liftHistory.length >= 2) {
+    const liftLabels = liftHistory.map(e => {
+      const d = new Date(e.date);
+      return `${d.getMonth() + 1}/${d.getDate()}`;
+    });
+    const liftStep = Math.max(1, Math.ceil(liftLabels.length / 6));
+    liftChartData = {
+      labels: liftLabels.map((l, i) => (i % liftStep === 0 ? l : '')),
+      datasets: [{ data: liftHistory.map(e => e.weight), strokeWidth: 2 }],
+    };
+  }
 
   // ── Recent workouts ──────────────────────────────────────────────
   const recentWorkouts = [...(userData.workoutHistory || [])]
@@ -192,6 +216,49 @@ export default function ProgressScreen() {
 
         {/* Target line label */}
         <Text style={[s.bodySec, { fontSize:11, marginTop:4 }]}>Target: {target.toLocaleString()} cal/day</Text>
+      </View>
+
+      {/* Lift progression */}
+      <View style={s.card}>
+        <Text style={[s.label, { marginBottom:12 }]}>LIFT PROGRESSION</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom:12 }}>
+          <View style={{ flexDirection:'row', gap:6 }}>
+            {TRACKED_LIFTS.map(name => (
+              <TouchableOpacity
+                key={name}
+                style={[s.rangeBtn, liftName === name && s.rangeBtnActive]}
+                onPress={() => setLiftName(name)}
+              >
+                <Text style={[s.rangeBtnText, liftName === name && { color:'#fff' }]}>{name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+        {liftChartData ? (
+          <>
+            <LineChart
+              data={liftChartData}
+              width={W - 32}
+              height={180}
+              chartConfig={chartConfig}
+              bezier
+              withInnerLines={false}
+              style={{ borderRadius:8, marginLeft:-8 }}
+            />
+            <Text style={[s.bodySec, { fontSize:11, marginTop:4 }]}>
+              Latest: {liftHistory[liftHistory.length - 1].weight} lbs · {liftHistory.length} sessions logged
+            </Text>
+          </>
+        ) : (
+          <View style={s.emptyChart}>
+            <Ionicons name="barbell-outline" size={32} color={theme.textMuted} />
+            <Text style={[s.bodySec, { marginTop:8, textAlign:'center' }]}>
+              {liftHistory.length < 2
+                ? 'Complete workouts to see lift progression'
+                : 'Need 2+ sessions with this lift'}
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* Recent workouts */}
