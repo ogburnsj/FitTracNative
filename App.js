@@ -26,6 +26,9 @@ import MilScoreScreen  from './src/screens/MilScoreScreen';
 const Tab   = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
+// Feature flags — flip to true when ready to re-enable
+const SHOW_AI_COACH = false;
+
 const TAB_ICONS = {
   Home:      { active: 'home',             idle: 'home-outline'        },
   Workouts:  { active: 'barbell',          idle: 'barbell-outline'     },
@@ -60,7 +63,7 @@ function Tabs() {
       <Tab.Screen name="Workouts"  component={WorkoutsScreen}  />
       <Tab.Screen name="Nutrition" component={NutritionScreen} />
       <Tab.Screen name="Progress"  component={ProgressScreen}  />
-      <Tab.Screen name="Coach"     component={CoachScreen}     />
+      {SHOW_AI_COACH && <Tab.Screen name="Coach" component={CoachScreen} />}
     </Tab.Navigator>
   );
 }

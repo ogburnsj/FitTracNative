@@ -10,6 +10,7 @@ import MealSection from '../components/MealSection';
 import MacroCell from '../components/MacroCell';
 import FoodSearchModal from '../components/FoodSearchModal';
 import ManualEntryModal from '../components/ManualEntryModal';
+import AdBanner from '../components/AdBanner';
 
 const MEALS = ['Breakfast', 'Lunch', 'Dinner', 'Snacks'];
 
@@ -87,6 +88,8 @@ export default function NutritionScreen({ navigation }) {
         ))}
       </ScrollView>
 
+      <AdBanner />
+
       <FoodSearchModal
         visible={panel === 'search'}
         meal={selMeal}
@@ -94,6 +97,7 @@ export default function NutritionScreen({ navigation }) {
         onAdd={addFoodEntry}
         onSwitchToManual={() => setPanel('manual')}
         theme={theme}
+        usdaKey={userData.usdaKey}
       />
 
       <ManualEntryModal

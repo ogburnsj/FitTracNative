@@ -10,9 +10,9 @@ import { PROGRAMS, TB_IDS, STANDALONE_IDS, KB_IDS, MIL_IDS, LIFT_LABELS, DEFAULT
 import { EXERCISE_LIBRARY } from '../data/exercises';
 
 // ── Screens inside the modal ──────────────────────────────
-const SCREEN = { LIST: 'list', DETAIL: 'detail', ACTIVE: 'active', ONE_RM: 'oneRM', BUILDER: 'builder', PICKER: 'picker', PLATE_CALC: 'plateCalc' };
+const SCREEN = { LIST: 'list', DETAIL: 'detail', SETUP: 'setup', ACTIVE: 'active', ONE_RM: 'oneRM', BUILDER: 'builder', PICKER: 'picker', PLATE_CALC: 'plateCalc' };
 
-export default function WorkoutsScreen() {
+export default function WorkoutsScreen({ navigation }) {
   const { userData, setUserData, finishWorkout, loadCustomWorkouts, saveCustomWorkouts } = useApp();
   const { theme } = useTheme();
   const s = makeStyles(theme);
@@ -44,6 +44,8 @@ export default function WorkoutsScreen() {
   const [customExSets, setCustomExSets] = useState('3');
   const [customExReps, setCustomExReps] = useState('10');
   const [customExWeighted, setCustomExWeighted] = useState(true);
+  const [builderSections, setBuilderSections] = useState([]);
+  const [activeSectionId, setActiveSectionId] = useState(null);
 
   useEffect(() => {
     loadCustomWorkouts().then(setCustomWorkouts);
@@ -106,12 +108,24 @@ export default function WorkoutsScreen() {
   function openCustomWorkout(idx) {
     const cw = customWorkouts[idx];
     if (!cw) return;
+    let allExercises = [];
+    if (cw.sections && cw.sections.length > 0) {
+      cw.sections.forEach(sec => {
+        sec.exercises.forEach(ex => allExercises.push({ ...ex, sectionName: sec.name }));
+      });
+      if (cw.exercises && cw.exercises.length > 0) {
+        cw.exercises.forEach(ex => allExercises.push(ex));
+      }
+    } else {
+      allExercises = cw.exercises || [];
+    }
     const schedule = [{
       day: cw.name,
-      exercises: cw.exercises.map(ex => ({
+      exercises: allExercises.map(ex => ({
         name: ex.name, sets: ex.sets, reps: ex.reps,
         weight_key: ex.weight_key,
         target_weight: ex.weight_key ? ((userData.weights || {})[ex.weight_key] || null) : null,
+        sectionName: ex.sectionName,
       })),
     }];
     setActiveProgram({ id: 'custom_' + idx, name: cw.name, schedule, isCustom: true, customIdx: idx });
@@ -120,7 +134,7 @@ export default function WorkoutsScreen() {
   }
 
   // ── Begin workout ───────────────────────────────────────
-  function beginWorkout() {
+  function prepareWorkout() {
     if (!activeProgram) return;
     const day = activeProgram.schedule[activeDayIndex];
     // Init weights / reps from saved data
@@ -134,6 +148,10 @@ export default function WorkoutsScreen() {
     setSetWeights(initW);
     setSetReps(initR);
     setCompletedSets({});
+    goTo(SCREEN.SETUP);
+  }
+
+  function startWorkout() {
     setWorkoutSeconds(0);
     clearInterval(timerRef.current);
     timerRef.current = setInterval(() => setWorkoutSeconds(prev => prev + 1), 1000);
@@ -164,13 +182,21 @@ export default function WorkoutsScreen() {
   function confirmFinish() {
     clearInterval(timerRef.current);
     const mins = Math.round(workoutSeconds / 60);
+    const day = activeProgram.schedule[activeDayIndex];
+    // Snapshot the actual weights/reps performed for history
+    const exerciseSnapshot = day.exercises.map((ex, exIdx) => ({
+      name: ex.name,
+      sets: ex.sets,
+      reps: setReps[`${exIdx}-1`] || String(ex.reps),
+      weight: parseFloat(setWeights[`${exIdx}-1`]) || null,
+    }));
     Alert.alert(
       'Finish Workout?',
       `Time: ${mins} min`,
       [
         { text: 'Cancel', onPress: () => { timerRef.current = setInterval(() => setWorkoutSeconds(prev => prev + 1), 1000); } },
         { text: 'Finish 💪', style: 'destructive', onPress: () => {
-          finishWorkout(activeProgram.id, activeProgram.schedule[activeDayIndex].day, mins);
+          finishWorkout(activeProgram.id, day.day, mins, exerciseSnapshot);
           setModalVisible(false);
         }},
       ]
@@ -187,20 +213,26 @@ export default function WorkoutsScreen() {
   function openBuilder(editIdx = null) {
     setEditingCustomIdx(editIdx);
     if (editIdx !== null && customWorkouts[editIdx]) {
-      setBuilderName(customWorkouts[editIdx].name);
-      setBuilderExercises([...customWorkouts[editIdx].exercises]);
+      const cw = customWorkouts[editIdx];
+      setBuilderName(cw.name);
+      setBuilderExercises(cw.exercises ? [...cw.exercises] : []);
+      setBuilderSections(cw.sections ? cw.sections.map((sec, i) => ({ ...sec, id: sec.id || String(Date.now() + i) })) : []);
     } else {
       setBuilderName('');
       setBuilderExercises([]);
+      setBuilderSections([]);
     }
     goTo(SCREEN.BUILDER);
   }
 
   async function saveCustomWorkout() {
     if (!builderName.trim()) { Alert.alert('Name required', 'Give your workout a name'); return; }
-    if (!builderExercises.length) { Alert.alert('No exercises', 'Add at least one exercise'); return; }
+    const totalEx = builderExercises.length + builderSections.reduce((sum, sec) => sum + sec.exercises.length, 0);
+    if (totalEx === 0) { Alert.alert('No exercises', 'Add at least one exercise'); return; }
     const workouts = await loadCustomWorkouts();
-    const workout = { name: builderName.trim(), exercises: builderExercises };
+    const workout = builderSections.length > 0
+      ? { name: builderName.trim(), sections: builderSections, exercises: builderExercises }
+      : { name: builderName.trim(), exercises: builderExercises };
     if (editingCustomIdx !== null) workouts[editingCustomIdx] = workout;
     else workouts.push(workout);
     await saveCustomWorkouts(workouts);
@@ -224,10 +256,18 @@ export default function WorkoutsScreen() {
   function quickAddExercise(ex) {
     const sets = parseInt(customExSets) || 3;
     const reps = parseInt(customExReps) || 10;
-    setBuilderExercises(prev => [...prev, {
+    const newEx = {
       name: ex.name, sets, reps, weighted: ex.weighted,
       weight_key: ex.weighted ? 'cust_' + ex.name.toLowerCase().replace(/\s+/g, '_') : null,
-    }]);
+    };
+    if (activeSectionId !== null) {
+      setBuilderSections(prev => prev.map(sec =>
+        sec.id === activeSectionId ? { ...sec, exercises: [...sec.exercises, newEx] } : sec
+      ));
+    } else {
+      setBuilderExercises(prev => [...prev, newEx]);
+    }
+    setActiveSectionId(null);
     goTo(SCREEN.BUILDER);
   }
 
@@ -236,10 +276,18 @@ export default function WorkoutsScreen() {
     if (!name) { Alert.alert('Name required'); return; }
     const sets = parseInt(customExSets) || 3;
     const reps = parseInt(customExReps) || 10;
-    setBuilderExercises(prev => [...prev, {
+    const newEx = {
       name, sets, reps, weighted: customExWeighted,
       weight_key: customExWeighted ? 'cust_' + name.toLowerCase().replace(/\s+/g, '_') : null,
-    }]);
+    };
+    if (activeSectionId !== null) {
+      setBuilderSections(prev => prev.map(sec =>
+        sec.id === activeSectionId ? { ...sec, exercises: [...sec.exercises, newEx] } : sec
+      ));
+    } else {
+      setBuilderExercises(prev => [...prev, newEx]);
+    }
+    setActiveSectionId(null);
     goTo(SCREEN.BUILDER);
   }
 
@@ -249,6 +297,40 @@ export default function WorkoutsScreen() {
     const arr = [...builderExercises];
     [arr[i], arr[j]] = [arr[j], arr[i]];
     setBuilderExercises(arr);
+  }
+
+  function addSection() {
+    const id = String(Date.now());
+    setBuilderSections(prev => [...prev, { id, name: 'New Section', exercises: [] }]);
+  }
+
+  function moveSectionEx(sectionId, exIdx, dir) {
+    setBuilderSections(prev => prev.map(sec => {
+      if (sec.id !== sectionId) return sec;
+      const j = exIdx + dir;
+      if (j < 0 || j >= sec.exercises.length) return sec;
+      const arr = [...sec.exercises];
+      [arr[exIdx], arr[j]] = [arr[j], arr[exIdx]];
+      return { ...sec, exercises: arr };
+    }));
+  }
+
+  function removeSectionEx(sectionId, exIdx) {
+    setBuilderSections(prev => prev.map(sec =>
+      sec.id === sectionId ? { ...sec, exercises: sec.exercises.filter((_, i) => i !== exIdx) } : sec
+    ));
+  }
+
+  function deleteSection(sectionId) {
+    const sec = builderSections.find(s => s.id === sectionId);
+    if (sec && sec.exercises.length > 0) {
+      Alert.alert('Delete section?', `"${sec.name}" has ${sec.exercises.length} exercise(s). They will be removed.`, [
+        { text: 'Cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => setBuilderSections(prev => prev.filter(s => s.id !== sectionId)) },
+      ]);
+    } else {
+      setBuilderSections(prev => prev.filter(s => s.id !== sectionId));
+    }
   }
 
   // ── Render helpers ──────────────────────────────────────
@@ -325,7 +407,11 @@ export default function WorkoutsScreen() {
             <View key={idx} style={[s.card, { flexDirection: 'row', alignItems: 'center' }]}>
               <View style={{ flex: 1 }}>
                 <Text style={[s.bold, { color: theme.textPri }]}>{cw.name}</Text>
-                <Text style={{ color: theme.textSec, fontSize: 12 }}>{cw.exercises.length} exercises</Text>
+                <Text style={{ color: theme.textSec, fontSize: 12 }}>
+                  {cw.sections
+                    ? `${cw.sections.reduce((n, sec) => n + sec.exercises.length, 0) + (cw.exercises?.length || 0)} exercises · ${cw.sections.length} sections`
+                    : `${cw.exercises.length} exercises`}
+                </Text>
               </View>
               <TouchableOpacity onPress={() => openCustomWorkout(idx)} style={[s.btnAccent, { paddingVertical: 6, paddingHorizontal: 12 }]}>
                 <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12 }}>Start</Text>
@@ -420,7 +506,7 @@ export default function WorkoutsScreen() {
           );
         })}
 
-        <TouchableOpacity style={[s.btnAccent, { marginTop: 8 }]} onPress={beginWorkout}>
+        <TouchableOpacity style={[s.btnAccent, { marginTop: 8 }]} onPress={prepareWorkout}>
           <Ionicons name="play" size={16} color="#fff" style={{ marginRight: 6 }} />
           <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Start Today's Workout</Text>
         </TouchableOpacity>
@@ -655,36 +741,157 @@ export default function WorkoutsScreen() {
     );
   }
 
+  function renderSetup() {
+    if (!activeProgram) return null;
+    const day = activeProgram.schedule[activeDayIndex];
+    const weighted = day.exercises.filter(ex => ex.weight_key !== null);
+    const bodyweight = day.exercises.filter(ex => ex.weight_key === null);
+    return (
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+        <Text style={[s.bodySec, { marginBottom: 16, lineHeight: 20 }]}>
+          Review and adjust starting weights. You can change them per-set during the workout.
+        </Text>
+
+        {weighted.length > 0 && (
+          <>
+            <Text style={s.sectionLabel}>Weighted Exercises</Text>
+            {weighted.map((ex, i) => {
+              const exIdx = day.exercises.indexOf(ex);
+              return (
+                <View key={i} style={[s.card2, { flexDirection: 'row', alignItems: 'center', padding: 14, marginBottom: 8 }]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: theme.textPri, fontWeight: '600', fontSize: 14 }}>{ex.name}</Text>
+                    <Text style={{ color: theme.textSec, fontSize: 12 }}>{ex.sets} sets × {ex.reps} reps</Text>
+                  </View>
+                  <TextInput
+                    style={[s.setInput, { width: 80, textAlign: 'center' }]}
+                    placeholder="lbs"
+                    placeholderTextColor={theme.textMuted}
+                    keyboardType="decimal-pad"
+                    value={setWeights[`${exIdx}-1`] || ''}
+                    onChangeText={v => {
+                      setSetWeights(prev => {
+                        const next = { ...prev };
+                        for (let sn = 1; sn <= ex.sets; sn++) next[`${exIdx}-${sn}`] = v;
+                        return next;
+                      });
+                    }}
+                  />
+                  <Text style={{ color: theme.textSec, fontSize: 12, marginLeft: 6 }}>lbs</Text>
+                </View>
+              );
+            })}
+          </>
+        )}
+
+        {bodyweight.length > 0 && (
+          <>
+            <Text style={[s.sectionLabel, { marginTop: 8 }]}>Bodyweight / Timed</Text>
+            {bodyweight.map((ex, i) => (
+              <View key={i} style={[s.card2, { flexDirection: 'row', alignItems: 'center', padding: 14, marginBottom: 8 }]}>
+                <Text style={{ flex: 1, color: theme.textSec, fontWeight: '600', fontSize: 14 }}>{ex.name}</Text>
+                <Text style={{ color: theme.textMuted, fontSize: 12 }}>{ex.sets} × {ex.reps}</Text>
+              </View>
+            ))}
+          </>
+        )}
+
+        <TouchableOpacity style={[s.btnAccent, { marginTop: 16 }]} onPress={startWorkout}>
+          <Ionicons name="play" size={16} color="#fff" style={{ marginRight: 6 }} />
+          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Begin Workout</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    );
+  }
+
   function renderBuilder() {
+    function openPicker(sectionId = null) {
+      setActiveSectionId(sectionId);
+      setExerciseSearchQ('');
+      setCustomExName('');
+      setCustomExSets('3');
+      setCustomExReps('10');
+      goTo(SCREEN.PICKER);
+    }
+
     return (
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         <Text style={s.inputLabel}>Workout Name</Text>
         <TextInput style={s.textInput} value={builderName} onChangeText={setBuilderName}
           placeholder="e.g. Push Day, Leg Day..." placeholderTextColor={theme.textMuted} />
 
+        {/* Flat exercises (shown when no sections, or for legacy flat exercises alongside sections) */}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, marginBottom: 8 }}>
-          <Text style={s.inputLabel}>Exercises</Text>
-          <TouchableOpacity onPress={() => { setExerciseSearchQ(''); setCustomExName(''); setCustomExSets('3'); setCustomExReps('10'); goTo(SCREEN.PICKER); }}>
+          <Text style={s.inputLabel}>{builderSections.length > 0 ? 'Unsectioned Exercises' : 'Exercises'}</Text>
+          <TouchableOpacity onPress={() => openPicker(null)}>
             <Text style={{ color: '#a78bfa', fontWeight: '600', fontSize: 13 }}>+ Add Exercise</Text>
           </TouchableOpacity>
         </View>
 
-        {builderExercises.length === 0
-          ? <Text style={{ color: theme.textMuted, textAlign: 'center', paddingVertical: 16, fontSize: 13 }}>No exercises yet — tap Add Exercise</Text>
-          : builderExercises.map((ex, i) => (
-            <View key={i} style={[s.card2, { flexDirection: 'row', alignItems: 'center', padding: 12, marginBottom: 8 }]}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: theme.textPri, fontWeight: '600', fontSize: 13 }}>{ex.name}</Text>
-                <Text style={{ color: theme.textSec, fontSize: 12 }}>{ex.sets} sets × {ex.reps} reps{ex.weighted ? ' · weighted' : ''}</Text>
+        {builderExercises.length === 0 && builderSections.length === 0
+          ? <Text style={{ color: theme.textMuted, textAlign: 'center', paddingVertical: 16, fontSize: 13 }}>No exercises yet — tap Add Exercise or Add Section</Text>
+          : builderExercises.length === 0 && builderSections.length > 0
+            ? null
+            : builderExercises.map((ex, i) => (
+              <View key={i} style={[s.card2, { flexDirection: 'row', alignItems: 'center', padding: 12, marginBottom: 8 }]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: theme.textPri, fontWeight: '600', fontSize: 13 }}>{ex.name}</Text>
+                  <Text style={{ color: theme.textSec, fontSize: 12 }}>{ex.sets} sets × {ex.reps} reps{ex.weighted ? ' · weighted' : ''}</Text>
+                </View>
+                <TouchableOpacity onPress={() => moveEx(i, -1)} style={{ padding: 4 }}><Ionicons name="chevron-up" size={16} color={theme.textSec} /></TouchableOpacity>
+                <TouchableOpacity onPress={() => moveEx(i, 1)} style={{ padding: 4 }}><Ionicons name="chevron-down" size={16} color={theme.textSec} /></TouchableOpacity>
+                <TouchableOpacity onPress={() => setBuilderExercises(prev => prev.filter((_, j) => j !== i))} style={{ padding: 4 }}><Ionicons name="close-circle" size={16} color="#f87171" /></TouchableOpacity>
               </View>
-              <TouchableOpacity onPress={() => moveEx(i, -1)} style={{ padding: 4 }}><Ionicons name="chevron-up" size={16} color={theme.textSec} /></TouchableOpacity>
-              <TouchableOpacity onPress={() => moveEx(i, 1)} style={{ padding: 4 }}><Ionicons name="chevron-down" size={16} color={theme.textSec} /></TouchableOpacity>
-              <TouchableOpacity onPress={() => setBuilderExercises(prev => prev.filter((_, j) => j !== i))} style={{ padding: 4 }}><Ionicons name="close-circle" size={16} color="#f87171" /></TouchableOpacity>
-            </View>
-          ))
+            ))
         }
 
-        <TouchableOpacity style={[s.btnAccent, { marginTop: 16, backgroundColor: '#7c3aed' }]} onPress={saveCustomWorkout}>
+        {/* Sections */}
+        {builderSections.map(sec => (
+          <View key={sec.id} style={[s.card, { marginTop: 12 }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+              <TextInput
+                style={[s.textInput, { flex: 1, marginRight: 8, paddingVertical: 7 }]}
+                value={sec.name}
+                onChangeText={v => setBuilderSections(prev => prev.map(s => s.id === sec.id ? { ...s, name: v } : s))}
+                placeholder="Section name"
+                placeholderTextColor={theme.textMuted}
+              />
+              <TouchableOpacity onPress={() => deleteSection(sec.id)} style={{ padding: 4 }}>
+                <Ionicons name="trash-outline" size={16} color="#f87171" />
+              </TouchableOpacity>
+            </View>
+
+            {sec.exercises.length === 0
+              ? <Text style={{ color: theme.textMuted, fontSize: 12, paddingVertical: 8 }}>No exercises — tap Add below</Text>
+              : sec.exercises.map((ex, exI) => (
+                <View key={exI} style={[s.card2, { flexDirection: 'row', alignItems: 'center', padding: 12, marginBottom: 8 }]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: theme.textPri, fontWeight: '600', fontSize: 13 }}>{ex.name}</Text>
+                    <Text style={{ color: theme.textSec, fontSize: 12 }}>{ex.sets} sets × {ex.reps} reps{ex.weighted ? ' · weighted' : ''}</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => moveSectionEx(sec.id, exI, -1)} style={{ padding: 4 }}><Ionicons name="chevron-up" size={16} color={theme.textSec} /></TouchableOpacity>
+                  <TouchableOpacity onPress={() => moveSectionEx(sec.id, exI, 1)} style={{ padding: 4 }}><Ionicons name="chevron-down" size={16} color={theme.textSec} /></TouchableOpacity>
+                  <TouchableOpacity onPress={() => removeSectionEx(sec.id, exI)} style={{ padding: 4 }}><Ionicons name="close-circle" size={16} color="#f87171" /></TouchableOpacity>
+                </View>
+              ))
+            }
+
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', paddingTop: 8, borderTopWidth: 1, borderTopColor: theme.border }}
+              onPress={() => openPicker(sec.id)}
+            >
+              <Ionicons name="add" size={15} color="#a78bfa" />
+              <Text style={{ color: '#a78bfa', fontWeight: '600', fontSize: 13, marginLeft: 4 }}>Add Exercise</Text>
+            </TouchableOpacity>
+          </View>
+        ))}
+
+        <TouchableOpacity style={[s.dashedBtn, { marginTop: 12 }]} onPress={addSection}>
+          <Ionicons name="folder-outline" size={18} color={theme.textSec} />
+          <Text style={{ color: theme.textSec, fontWeight: '600', marginLeft: 6 }}>Add Section</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[s.btnAccent, { marginTop: 12, backgroundColor: '#7c3aed' }]} onPress={saveCustomWorkout}>
           <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Save Workout</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -738,6 +945,7 @@ export default function WorkoutsScreen() {
   const screenTitle = {
     [SCREEN.LIST]:       'Choose Program',
     [SCREEN.DETAIL]:     activeProgram?.name || 'Program',
+    [SCREEN.SETUP]:      'Set Starting Weights',
     [SCREEN.ACTIVE]:     activeProgram?.schedule?.[activeDayIndex]?.day || 'Workout',
     [SCREEN.ONE_RM]:     'Your 1 Rep Maxes',
     [SCREEN.BUILDER]:    'Build Custom Workout',
@@ -746,6 +954,7 @@ export default function WorkoutsScreen() {
   };
   const backScreen = {
     [SCREEN.DETAIL]:     SCREEN.LIST,
+    [SCREEN.SETUP]:      SCREEN.DETAIL,
     [SCREEN.ACTIVE]:     SCREEN.DETAIL,
     [SCREEN.ONE_RM]:     SCREEN.DETAIL,
     [SCREEN.BUILDER]:    SCREEN.LIST,
@@ -790,6 +999,7 @@ export default function WorkoutsScreen() {
 
           {screen === SCREEN.LIST       && renderProgramList()}
           {screen === SCREEN.DETAIL     && renderDetail()}
+          {screen === SCREEN.SETUP      && renderSetup()}
           {screen === SCREEN.ACTIVE     && renderActiveWorkout()}
           {screen === SCREEN.ONE_RM     && renderOneRM()}
           {screen === SCREEN.PLATE_CALC && renderPlateCalc()}

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 
 // ── Type definitions ──────────────────────────────────────────────────────────
 
@@ -49,8 +50,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
  * }} UserData
  */
 
-const STORAGE_KEY = 'fittrac_user_data';
-const CUSTOM_KEY  = 'fittrac_custom_workouts';
+const STORAGE_KEY   = 'fittrac_user_data';
+const CUSTOM_KEY    = 'fittrac_custom_workouts';
+const SECURE_API_KEY = 'fittrac_api_key';
 
 const DEFAULT_DATA = {
   calories: 0,
@@ -67,6 +69,7 @@ const DEFAULT_DATA = {
   oneRM: {},            // { squat, bench, deadlift, ohp, row, pullups }
   weights: {},          // per-exercise working weights
   apiKey: '',           // Claude API key (entered by user in Settings)
+  usdaKey: '',          // USDA FoodData Central API key (optional, removes rate limits)
   profile: {
     age: null, heightFt: null, heightIn: null,
     weight: null, sex: 'male', activityLevel: 'moderate',
@@ -83,24 +86,50 @@ export function AppProvider({ children }) {
 
   // Load on mount
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then(raw => {
-      if (raw) {
-        try {
+    async function load() {
+      // Load API key from secure storage
+      let apiKey = '';
+      try { apiKey = await SecureStore.getItemAsync(SECURE_API_KEY) || ''; } catch {}
+
+      try {
+        const raw = await AsyncStorage.getItem(STORAGE_KEY);
+        if (raw) {
           const saved = JSON.parse(raw);
-          setUserDataRaw(prev => deepMerge(prev, saved));
-        } catch {}
-      }
+          // Migrate: if old data has apiKey in AsyncStorage, move it to SecureStore
+          if (saved.apiKey && !apiKey) {
+            try { await SecureStore.setItemAsync(SECURE_API_KEY, saved.apiKey); apiKey = saved.apiKey; } catch {}
+            delete saved.apiKey;
+            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+          } else {
+            delete saved.apiKey; // never keep it in AsyncStorage
+          }
+          setUserDataRaw(prev => deepMerge(prev, { ...pruneData(saved), apiKey }));
+        } else if (apiKey) {
+          setUserDataRaw(prev => ({ ...prev, apiKey }));
+        }
+      } catch {}
+
       setLoaded(true);
-    });
+    }
+    load();
   }, []);
 
   // Debounced save — write 400ms after last update
+  // apiKey is always routed to SecureStore, never written to AsyncStorage
   function setUserData(updater) {
     setUserDataRaw(prev => {
       const next = typeof updater === 'function' ? updater(prev) : { ...prev, ...updater };
+      if (next.apiKey !== prev.apiKey) {
+        if (next.apiKey) {
+          SecureStore.setItemAsync(SECURE_API_KEY, next.apiKey).catch(() => {});
+        } else {
+          SecureStore.deleteItemAsync(SECURE_API_KEY).catch(() => {});
+        }
+      }
       clearTimeout(saveTimeout.current);
       saveTimeout.current = setTimeout(() => {
-        AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+        const { apiKey: _key, ...toStore } = next;
+        AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(toStore));
       }, 400);
       return next;
     });
@@ -109,7 +138,8 @@ export function AppProvider({ children }) {
   // Immediate save (for critical writes like program finish)
   async function saveNow(data) {
     clearTimeout(saveTimeout.current);
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    const { apiKey: _key, ...toStore } = data;
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(toStore));
   }
 
   // ── Food helpers ─────────────────────────────────────
@@ -185,8 +215,9 @@ export function AppProvider({ children }) {
    * @param {string} programId
    * @param {string} dayName
    * @param {number} durationMins
+   * @param {Array<{name:string, sets:number, reps:string|number, weight:number|null}>} [exercises]
    */
-  function finishWorkout(programId, dayName, durationMins) {
+  function finishWorkout(programId, dayName, durationMins, exercises) {
     setUserData(prev => {
       const history = [...(prev.workoutHistory || []), {
         date: new Date().toISOString(),
@@ -194,6 +225,7 @@ export function AppProvider({ children }) {
         day: dayName,
         duration: durationMins,
         completed: true,
+        exercises: exercises || [],
       }];
       return {
         ...prev,
@@ -294,6 +326,38 @@ export function AppProvider({ children }) {
  */
 export function useApp() {
   return useContext(AppContext);
+}
+
+// Prune large arrays and stale foodLog entries on load to keep AsyncStorage lean
+function pruneData(data) {
+  const out = { ...data };
+
+  // Keep only the last 90 days of food logs
+  if (out.foodLog && typeof out.foodLog === 'object') {
+    const cutoff = new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10);
+    const pruned = {};
+    for (const [date, log] of Object.entries(out.foodLog)) {
+      if (date >= cutoff) pruned[date] = log;
+    }
+    out.foodLog = pruned;
+  }
+
+  // Cap workout history at 500 entries (keep most recent)
+  if (Array.isArray(out.workoutHistory) && out.workoutHistory.length > 500) {
+    out.workoutHistory = out.workoutHistory.slice(-500);
+  }
+
+  // Cap weight history at 365 entries (keep most recent)
+  if (Array.isArray(out.weightHistory) && out.weightHistory.length > 365) {
+    out.weightHistory = out.weightHistory.slice(-365);
+  }
+
+  // Cap chat history at 200 messages locally
+  if (Array.isArray(out.chatHistory) && out.chatHistory.length > 200) {
+    out.chatHistory = out.chatHistory.slice(-200);
+  }
+
+  return out;
 }
 
 // Deep merge: src values override dst, arrays fully replaced

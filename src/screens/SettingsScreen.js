@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -13,12 +14,18 @@ export default function SettingsScreen({ navigation }) {
   const { theme, setThemeName } = useTheme();
   const s = makeStyles(theme);
 
-  const [apiKey, setApiKey] = useState(userData.apiKey || '');
+  const [apiKey,  setApiKey]  = useState(userData.apiKey  || '');
+  const [usdaKey, setUsdaKey] = useState(userData.usdaKey || '');
   const [showKey, setShowKey] = useState(false);
 
   function saveApiKey() {
     setUserData({ apiKey: apiKey.trim() });
     Alert.alert('Saved', 'API key saved.');
+  }
+
+  function saveUsdaKey() {
+    setUserData({ usdaKey: usdaKey.trim() });
+    Alert.alert('Saved', 'USDA key saved.');
   }
 
   return (
@@ -86,6 +93,39 @@ export default function SettingsScreen({ navigation }) {
         </View>
       </View>
 
+      {/* USDA Food Database */}
+      <View style={s.section}>
+        <Text style={s.sectionTitle}>NUTRITION SEARCH</Text>
+        <View style={s.card}>
+          <Text style={[s.bodySec, { marginBottom:8 }]}>
+            Optional: enter a free USDA FoodData API key to remove rate limits on food search.
+            Get one at fdc.nal.usda.gov.
+          </Text>
+          <View style={s.keyRow}>
+            <TextInput
+              style={[s.input, { flex:1 }]}
+              value={usdaKey}
+              onChangeText={setUsdaKey}
+              placeholder="DEMO_KEY (limited) or your key"
+              placeholderTextColor={theme.textSec}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+          <TouchableOpacity style={[s.btn, { marginTop:10 }]} onPress={saveUsdaKey}>
+            <Text style={s.btnText}>Save USDA Key</Text>
+          </TouchableOpacity>
+          {userData.usdaKey ? (
+            <TouchableOpacity
+              style={{ marginTop:10, alignItems:'center' }}
+              onPress={() => { setUserData({ usdaKey:'' }); setUsdaKey(''); }}
+            >
+              <Text style={{ color:'#f87171', fontSize:13 }}>Remove USDA Key</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      </View>
+
       {/* TDEE / Goals */}
       <View style={s.section}>
         <Text style={s.sectionTitle}>GOALS & NUTRITION</Text>
@@ -115,11 +155,13 @@ export default function SettingsScreen({ navigation }) {
                   { text: 'Cancel', style: 'cancel' },
                   {
                     text: 'Delete Everything', style: 'destructive',
-                    onPress: () => {
+                    onPress: async () => {
+                      await AsyncStorage.removeItem('fittrac_custom_workouts');
                       setUserData({
                         calories: 0, workoutsCompleted: 0, weight: 0,
                         weightHistory: [], workoutHistory: [], chatHistory: [],
                         foodLog: {}, currentProgram: null, lastWorkout: null,
+                        oneRM: {}, weights: {},
                       });
                       Alert.alert('Done', 'All data cleared.');
                     }

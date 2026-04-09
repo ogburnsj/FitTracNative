@@ -7,10 +7,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { FOOD_DB } from '../data/foodDatabase';
 
-const CATS     = ['All', 'My Recipes', 'Protein', 'Carbs'];
-const USDA_KEY = 'DEMO_KEY';
+const CATS = ['All', 'My Recipes', 'Protein', 'Carbs'];
 
-export default function FoodSearchModal({ visible, meal, onClose, onAdd, onSwitchToManual, theme }) {
+export default function FoodSearchModal({ visible, meal, onClose, onAdd, onSwitchToManual, theme, usdaKey }) {
   const s = makeStyles(theme);
 
   const [query, setQuery]           = useState('');
@@ -44,7 +43,7 @@ export default function FoodSearchModal({ visible, meal, onClose, onAdd, onSwitc
   async function fetchUSDA(q, existing) {
     setUsdaLoading(true);
     try {
-      const url = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&pageSize=8&api_key=${USDA_KEY}`;
+      const url = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&pageSize=8&api_key=${usdaKey || 'DEMO_KEY'}`;
       const resp = await fetch(url);
       const data = await resp.json();
       const usda = (data.foods || []).map(f => {

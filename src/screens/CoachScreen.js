@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 
-const MODEL    = 'claude-sonnet-4-20250514';
+const MODEL    = 'claude-sonnet-4-6';
 const API_URL  = 'https://api.anthropic.com/v1/messages';
 const MAX_HIST = 40; // max messages kept in history
 
@@ -79,9 +79,12 @@ export default function CoachScreen() {
     // Keep only last MAX_HIST messages for API call
     const apiMessages = newHistory.slice(-MAX_HIST).map(m => ({ role: m.role, content: m.content }));
 
+    const controller = new AbortController();
+    const timeoutId  = setTimeout(() => controller.abort(), 30000);
     try {
       const resp = await fetch(API_URL, {
         method: 'POST',
+        signal: controller.signal,
         headers: {
           'Content-Type':      'application/json',
           'x-api-key':         apiKey,
@@ -107,10 +110,12 @@ export default function CoachScreen() {
       setUserData({ chatHistory: updated });
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150);
     } catch (e) {
-      Alert.alert('Coach Error', e.message || 'Failed to reach the AI coach.');
-      // Remove the user message we optimistically added
-      setUserData({ chatHistory: history });
+      const msg = e.name === 'AbortError' ? 'Request timed out. Try again.' : (e.message || 'Failed to reach the AI coach.');
+      Alert.alert('Coach Error', msg);
+      // Remove the user message we optimistically added — use updater to avoid stale closure
+      setUserData(prev => ({ ...prev, chatHistory: (prev.chatHistory || []).slice(0, -1) }));
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   }

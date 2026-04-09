@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LineChart, BarChart } from 'react-native-chart-kit';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
+import AdBanner from '../components/AdBanner';
 
 const W = Dimensions.get('window').width - 32; // full width minus page padding
 
@@ -101,7 +102,8 @@ export default function ProgressScreen() {
   };
 
   return (
-    <ScrollView style={s.page} contentContainerStyle={{ paddingBottom:100 }} showsVerticalScrollIndicator={false}>
+    <View style={{ flex: 1, backgroundColor: theme.bgPage }}>
+    <ScrollView style={s.page} contentContainerStyle={{ paddingBottom:16 }} showsVerticalScrollIndicator={false}>
 
       {/* Stats summary */}
       <View style={s.statsRow}>
@@ -218,6 +220,8 @@ export default function ProgressScreen() {
       </View>
 
     </ScrollView>
+    <AdBanner />
+    </View>
   );
 }
 

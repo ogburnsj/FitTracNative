@@ -7,6 +7,7 @@ import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { PROGRAMS } from '../data/programs';
 import ProgressRow from '../components/ProgressRow';
+import AdBanner from '../components/AdBanner';
 
 export default function HomeScreen({ navigation }) {
   const { userData, setUserData, getTodayFoodLog, calcStreak, calc7DayCalAvg, calcWeightDelta } = useApp();
@@ -38,7 +39,8 @@ export default function HomeScreen({ navigation }) {
   const calBarColor = calPct >= 1 ? '#f87171' : calPct >= 0.85 ? '#fbbf24' : theme.accent;
 
   return (
-    <ScrollView style={s.page} contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
+    <View style={{ flex: 1, backgroundColor: theme.bgPage }}>
+    <ScrollView style={s.page} contentContainerStyle={{ paddingBottom: 16 }} showsVerticalScrollIndicator={false}>
       {/* Hero */}
       <View style={[s.card, s.hero]}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -117,6 +119,8 @@ export default function HomeScreen({ navigation }) {
         <ProgressRow label="Calorie Average" value={avg !== null ? avg.toLocaleString() : '—'} color={avg && userData.targetCalories && avg > userData.targetCalories ? '#f87171' : theme.accent} theme={theme} />
       </View>
     </ScrollView>
+    <AdBanner />
+    </View>
   );
 }
 
