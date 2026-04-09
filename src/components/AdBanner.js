@@ -4,8 +4,8 @@ import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads'
 
 // Replace these with your real AdMob unit IDs from admob.google.com before submitting to store
 const UNIT_IDS = {
-  android: 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
-  ios:     'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
+  android: 'ca-app-pub-6336933046780764/4822333483',
+  ios:     'ca-app-pub-6336933046780764/4822333483',
 };
 
 const adUnitId = __DEV__
